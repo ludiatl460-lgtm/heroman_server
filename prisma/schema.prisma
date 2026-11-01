@@ -1,0 +1,153 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  CUSTOMER
+  MECHANIC
+}
+
+enum DocumentType {
+  CARD_ID
+  FAMILY_BOOK
+  PASSPORT
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum ApproveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RETURNED
+}
+
+enum BillStatus {
+  PENDING
+  APPROVED
+  COMMING
+  FIXING
+  SUCCESS
+}
+
+type ObjectItem {
+  name        String
+  price       Float
+  quantity    Int
+  total       Float
+  description String?
+}
+
+model User {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  username String    @unique
+  password String
+  role     Role
+  mechanic Mechanic?
+  customer Customer?
+  admin    Admin?
+}
+
+model Job {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  mechanics Mechanic[]
+}
+
+model Mechanic {
+  id             String        @id @default(auto()) @map("_id") @db.ObjectId
+  laoName        String
+  laoLastName    String?
+  engName        String        
+  engLastName    String?
+  gender         Gender
+  birth          DateTime
+  presentAddress String
+  bornAddress    String
+  
+  // ປ່ຽນ jobId ໃຫ້ເປັນ Optional (ສາມາດຍັງບໍ່ເລືອກ Job ກ່ອນໄດ້)
+  jobId          String?       @db.ObjectId
+  job            Job?          @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  
+  skill          String?       
+  cv             String
+  experience     Int
+  portfolio      String[]
+  documentType   DocumentType
+  documentNo     String
+  issueDate      DateTime
+  expiryDate     DateTime
+  certificate    String?
+  status         ApproveStatus
+  rejectedRemark String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  
+  // ປ່ຽນ userId ໃຫ້ເປັນ Optional (ສາມາດຍັງບໍ່ມີ User ກ່ອນໄດ້ ຕອນລໍຖ້າອະນຸມັດ)
+  userId         String?       @unique @db.ObjectId
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  email          String
+  tel            String
+  isActive       Boolean
+  profile        String?
+  bills          Bill[]
+}
+
+model Customer {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  lastname String
+  gender   Gender
+  contact  String
+  email    String?
+  
+  // ປ່ຽນ userId ໃຫ້ເປັນ Optional
+  userId   String?  @unique @db.ObjectId
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  bills    Bill[]
+}
+
+model Admin {
+  id       String   @id @default(auto()) @map("_id") @db.ObjectId
+  name     String
+  lastname String
+  gender   Gender
+  contact  String
+  email    String
+  
+  // ປ່ຽນ userId ໃຫ້ເປັນ Optional
+  userId   String?  @unique @db.ObjectId
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Bill {
+  id         String     @id @default(auto()) @map("_id") @db.ObjectId
+  date       DateTime   @default(now())
+  
+  // ປ່ຽນ mechanicId ແລະ customerId ໃຫ້ເປັນ Optional (ກໍລະນີໃບບິນຍັງບໍ່ທັນລະບຸຊ່າງ ຫຼື ລູກຄ້າ)
+  mechanicId String?    @db.ObjectId
+  mechanic   Mechanic?  @relation(fields: [mechanicId], references: [id], onDelete: SetNull)
+  
+  customerId String?    @db.ObjectId
+  customer   Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  
+  status     BillStatus
+  address    String
+  location   String
+  items      ObjectItem[]
+  repairCost Float
+  fee        Float
+  sumTotal   Float
+  isPaid     Boolean
+}
